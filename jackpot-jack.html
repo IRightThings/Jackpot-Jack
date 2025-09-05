@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jackpot Jack - Lucky Number Generator</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide-react/0.263.1/lucide-react.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+        }
+        .animate-ping {
+            animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+        @keyframes ping {
+            75%, 100% {
+                transform: scale(2);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { Home, History, Settings, Info, User, Eye, EyeOff, Save, RefreshCw, ChevronDown } = lucide;
+
+        const JackpotJackApp = () => {
+            const [isSignedIn, setIsSignedIn] = useState(false);
+            const [currentPage, setCurrentPage] = useState('home');
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+            const [showPassword, setShowPassword] = useState(false);
+            const [powerballs, setPowerballs] = useState([]);
+            const [megaMillions, setMegaMillions] = useState([]);
+            const [showPowerballResults, setShowPowerballResults] = useState(false);
+            const [showMegaMillionsResults, setShowMegaMillionsResults] = useState(false);
+            const [savedNumbers, setSavedNumbers] = useState([]);
+            const [pinnedStates, setPinnedStates] = useState([]);
+            const [selectedState, setSelectedState] = useState('');
+            const [preferredState, setPreferredState] = useState('');
+
+            // Generate Powerball numbers
+            const generatePowerball = () => {
+                const mainNumbers = [];
+                while (mainNumbers.length < 5) {
+                    const num = Math.floor(Math.random() * 69) + 1;
+                    if (!mainNumbers.includes(num)) {
+                        mainNumbers.push(num);
+                    }
+                }
+                mainNumbers.sort((a, b) => a - b);
+                const powerball = Math.floor(Math.random() * 26) + 1;
+                return { main: mainNumbers, special: powerball };
+            };
+
+            // Generate Mega Millions numbers
+            const generateMegaMillions = () => {
+                const mainNumbers = [];
+                while (mainNumbers.length < 5) {
+                    const num = Math.floor(Math.random() * 70) + 1;
+                    if (!mainNumbers.includes(num)) {
+                        mainNumbers.push(num);
+                    }
+                }
+                mainNumbers.sort((a, b) => a - b);
+                const megaBall = Math.floor(Math.random() * 25) + 1;
+                return { main: mainNumbers, special: megaBall };
+            };
+
+            // State lottery data
+            const stateLotteries = [
+                { name: 'Alabama', website: 'https://www.alabamalottery.com/', hasLottery: true },
+                { name: 'Alaska', website: null, hasLottery: false },
+                { name: 'Arizona', website: 'https://www.arizonalottery.com/', hasLottery: true },
+                { name: 'Arkansas', website: 'https://www.myarkansaslottery.com/', hasLottery: true },
+                { name: 'California', website: 'https://www.calottery.com/', hasLottery: true },
+                { name: 'Colorado', website: 'https://www.coloradolottery.com/', hasLottery: true },
+                { name: 'Connecticut', website: 'https://www.ctlottery.org/', hasLottery: true },
+                { name: 'Delaware', website: 'https://www.delottery.com/', hasLottery: true },
+                { name: 'Florida', website: 'https://www.flalottery.com/', hasLottery: true },
+                { name: 'Georgia', website: 'https://www.galottery.com/', hasLottery: true },
+                { name: 'New York', website: 'https://nylottery.ny.gov/', hasLottery: true },
+                { name: 'Texas', website: 'https://www.txlottery.org/', hasLottery: true }
+            ];
+
+            // Helper functions
+            const togglePinnedState = (stateName) => {
+                setPinnedStates(prev => 
+                    prev.includes(stateName) 
+                        ? prev.filter(s => s !== stateName)
+                        : [...prev, stateName]
+                );
+            };
+
+            const setAsPreferred = (stateName) => {
+                setPreferredState(stateName);
+                if (!pinnedStates.includes(stateName)) {
+                    togglePinnedState(stateName);
+                }
+            };
+
+            const handleStateSelect = (stateName) => {
+                setSelectedState(stateName);
+                const state = stateLotteries.find(s => s.name === stateName);
+                if (state && state.website) {
+                    window.open(state.website, '_blank');
+                }
+            };
+
+            const saveNumbers = (numbers, type) => {
+                const savedEntry = {
+                    id: Date.now(),
+                    type: type,
+                    main: numbers.main,
+                    special: numbers.special,
+                    dateSaved: new Date().toLocaleDateString()
+                };
+                setSavedNumbers(prev => [savedEntry, ...prev]);
+            };
+
+            // Initialize with generated numbers on sign-in
+            useEffect(() => {
+                if (isSignedIn && powerballs.length === 0) {
+                    setPowerballs([generatePowerball()]);
+                }
+                if (isSignedIn && megaMillions.length === 0) {
+                    setMegaMillions([generateMegaMillions()]);
+                }
+            }, [isSignedIn]);
+
+            // Logo Component
+            const JackpotJackLogo = () => (
+                React.createElement('div', { className: "flex items-center" },
+                    React.createElement('div', { 
+                        className: "w-12 h-12 rounded-xl mr-3 flex items-center justify-center shadow-xl border-2 border-white border-opacity-30 bg-gradient-to-br from-purple-600 to-blue-600 relative overflow-hidden" 
+                    },
+                        React.createElement('div', { className: "text-white text-2xl font-bold" }, "🎲"),
+                        React.createElement('div', { className: "absolute top-1 right-1 w-1.5 h-1.5 bg-yellow-300 rounded-full animate-ping" })
+                    ),
+                    React.createElement('div', {},
+                        React.createElement('h1', { className: "text-xl font-bold text-white drop-shadow-sm" }, "Jackpot Jack"),
+                        React.createElement('p', { className: "text-sm text-green-100" }, "Lucky number generator")
+                    )
+                )
+            );
+
+            // Sign In Page
+            if (!isSignedIn) {
+                return React.createElement('div', { className: "min-h-screen bg-gradient-to-br from-purple-600 to-blue-600" },
+                    React.createElement('div', { className: "flex flex-col min-h-screen" },
+                        React.createElement('div', { className: "bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6 text-center" },
+                            React.createElement('div', { className: "flex justify-center mb-4" },
+                                React.createElement(JackpotJackLogo)
+                            ),
+                            React.createElement('h1', { className: "text-3xl font-bold mb-2" }, "Welcome Back"),
+                            React.createElement('p', { className: "text-purple-100" }, "Sign in to Jackpot Jack")
+                        ),
+                        React.createElement('div', { className: "flex-1 bg-gray-50 p-6" },
+                            React.createElement('div', { className: "max-w-md mx-auto mb-6" },
+                                React.createElement('button', {
+                                    onClick: () => setIsSignedIn(true),
+                                    className: "w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition duration-200 mb-4"
+                                }, "🚀 Quick Demo Access (Skip Login)"),
+                                React.createElement('div', { className: "text-center text-sm text-gray-500 mb-4" }, "↑ Click here to try the app ↑")
+                            ),
+                            React.createElement('div', { className: "space-y-4 max-w-md mx-auto" },
+                                React.createElement('input', {
+                                    type: "text",
+                                    placeholder: "Email address",
+                                    value: email,
+                                    onChange: (e) => setEmail(e.target.value),
+                                    className: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                }),
+                                React.createElement('input', {
+                                    type: showPassword ? "text" : "password",
+                                    placeholder: "Password",
+                                    value: password,
+                                    onChange: (e) => setPassword(e.target.value),
+                                    className: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                }),
+                                React.createElement('button', {
+                                    onClick: () => setIsSignedIn(true),
+                                    className: "w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition duration-200"
+                                }, "Sign In")
+                            )
+                        )
+                    )
+                );
+            }
+
+            // Number Ball Component
+            const NumberBall = ({ number, isSpecial = false, type = 'powerball' }) => (
+                React.createElement('div', {
+                    className: `w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                        isSpecial 
+                            ? (type === 'powerball' ? 'bg-red-500' : 'bg-yellow-500')
+                            : 'bg-gray-600'
+                    }`
+                }, number.toString().padStart(2, '0'))
+            );
+
+            // Mock draw results
+            const mockPowerballDraw = {
+                date: "June 29, 2025",
+                main: [12, 23, 44, 57, 62],
+                special: 8,
+                jackpot: "450"
+            };
+
+            const mockMegaMillionsDraw = {
+                date: "June 28, 2025", 
+                main: [7, 15, 33, 51, 68],
+                special: 19,
+                jackpot: "380"
+            };
+
+            const getCurrentResults = (type) => {
+                return type === 'powerball' ? mockPowerballDraw : mockMegaMillionsDraw;
+            };
+
+            // Lottery Game Component
+            const LotteryGame = ({ title, type, color, onGenerate, numbers, latestDraw, showResults, toggleResults, onSave }) => (
+                React.createElement('div', { className: `bg-white rounded-lg shadow-lg p-6 mb-6 border-l-4 ${color}` },
+                    React.createElement('div', { className: "flex justify-between items-center mb-4" },
+                        React.createElement('h2', { className: "text-2xl font-bold text-gray-800" }, title),
+                        numbers.length > 0 && React.createElement('div', { className: "flex items-center space-x-3" },
+                            React.createElement('button', {
+                                onClick: () => onSave(numbers[0], type),
+                                className: "p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition duration-200"
+                            }, "💾"),
+                            React.createElement('button', {
+                                onClick: onGenerate,
+                                className: "p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200"
+                            }, "🔄")
+                        )
+                    ),
+                    numbers.length > 0 && React.createElement('div', { className: "mb-6" },
+                        React.createElement('div', { className: "flex justify-center items-center gap-2 mb-4" },
+                            ...numbers[0].main.map((num, idx) => 
+                                React.createElement(NumberBall, { key: idx, number: num, type: type })
+                            ),
+                            React.createElement('span', { className: "text-lg font-bold text-gray-400 mx-1" }, "+"),
+                            React.createElement(NumberBall, { number: numbers[0].special, isSpecial: true, type: type })
+                        )
+                    ),
+                    React.createElement('button', {
+                        onClick: toggleResults,
+                        className: "w-full text-blue-600 font-semibold mt-2 flex items-center justify-center hover:text-blue-800 transition duration-200"
+                    }, "Latest Draw Results ↓"),
+                    showResults && React.createElement('div', { className: "mt-4 p-4 bg-gray-50 rounded-lg" },
+                        React.createElement('div', { className: "text-sm text-gray-600 mb-2" }, `Last Drawing: ${latestDraw.date}`),
+                        React.createElement('div', { className: "flex flex-wrap justify-center items-center gap-2 mb-2" },
+                            ...latestDraw.main.map((num, idx) => 
+                                React.createElement('div', {
+                                    key: idx,
+                                    className: "w-8 h-8 bg-gray-600 text-white rounded-full flex items-center justify-center text-sm font-bold"
+                                }, num)
+                            ),
+                            React.createElement('span', { className: "text-lg font-bold text-gray-400 mx-1" }, "+"),
+                            React.createElement('div', {
+                                className: `w-8 h-8 text-white rounded-full flex items-center justify-center text-sm font-bold ${
+                                    type === 'powerball' ? 'bg-red-500' : 'bg-yellow-500'
+                                }`
+                            }, latestDraw.special)
+                        ),
+                        React.createElement('div', { className: "text-lg font-bold text-green-600 text-center" }, `$${latestDraw.jackpot} Million`)
+                    )
+                )
+            );
+
+            // Navigation Bar
+            const NavBar = () => (
+                React.createElement('div', { className: "bg-gradient-to-r from-green-500 via-green-600 to-emerald-600 text-white p-4 flex justify-between items-center shadow-lg" },
+                    React.createElement(JackpotJackLogo),
+                    React.createElement('button', {
+                        onClick: () => setIsSignedIn(false),
+                        className: "bg-white bg-opacity-20 backdrop-blur-sm px-4 py-2 rounded-lg text-sm hover:bg-opacity-30 transition duration-200 font-medium"
+                    }, "Sign Out")
+                )
+            );
+
+            // Bottom Navigation
+            const BottomNav = () => (
+                React.createElement('div', { className: "bg-white border-t border-gray-200 p-2" },
+                    React.createElement('div', { className: "flex justify-around" },
+                        [
+                            { id: 'home', label: 'Home', icon: '🏠' },
+                            { id: 'history', label: 'History', icon: '📚' },
+                            { id: 'settings', label: 'Settings', icon: '⚙️' },
+                            { id: 'info', label: 'Info', icon: 'ℹ️' }
+                        ].map(({ id, icon, label }) => (
+                            React.createElement('button', {
+                                key: id,
+                                onClick: () => setCurrentPage(id),
+                                className: `flex flex-col items-center p-2 ${
+                                    currentPage === id ? 'text-green-600' : 'text-gray-500'
+                                }`
+                            },
+                                React.createElement('span', { className: "text-xl mb-1" }, icon),
+                                React.createElement('span', { className: "text-xs" }, label)
+                            )
+                        ))
+                    )
+                )
+            );
+
+            // Main App Content
+            return React.createElement('div', { className: "bg-gray-50 min-h-screen" },
+                React.createElement(NavBar),
+                
+                currentPage === 'home' && React.createElement('div', { className: "p-4" },
+                    React.createElement(LotteryGame, {
+                        title: "Powerball",
+                        type: "powerball",
+                        color: "border-red-500",
+                        numbers: powerballs,
+                        onGenerate: () => setPowerballs([generatePowerball()]),
+                        latestDraw: getCurrentResults('powerball'),
+                        showResults: showPowerballResults,
+                        toggleResults: () => setShowPowerballResults(!showPowerballResults),
+                        onSave: saveNumbers
+                    }),
+                    React.createElement(LotteryGame, {
+                        title: "Mega Millions",
+                        type: "megaMillions",
+                        color: "border-blue-500",
+                        numbers: megaMillions,
+                        onGenerate: () => setMegaMillions([generateMegaMillions()]),
+                        latestDraw: getCurrentResults('megaMillions'),
+                        showResults: showMegaMillionsResults,
+                        toggleResults: () => setShowMegaMillionsResults(!showMegaMillionsResults),
+                        onSave: saveNumbers
+                    }),
+                    React.createElement('div', { className: "bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg p-6 mb-6" },
+                        React.createElement('h3', { className: "text-xl font-bold mb-2" }, "🎯 Boost Your Luck!"),
+                        React.createElement('p', { className: "text-blue-100 mb-3" }, "Get premium lottery analysis & winning strategies"),
+                        React.createElement('button', { className: "bg-white text-blue-600 px-6 py-2 rounded-lg font-semibold hover:bg-blue-50 transition duration-200" }, "Learn More")
+                    )
+                ),
+
+                currentPage === 'history' && React.createElement('div', { className: "p-4" },
+                    React.createElement('h2', { className: "text-2xl font-bold text-gray-800 mb-6" }, "Saved Numbers"),
+                    savedNumbers.length === 0 ? 
+                        React.createElement('div', { className: "bg-white rounded-lg shadow-lg p-8 text-center" },
+                            React.createElement('div', { className: "text-gray-400 mb-4 text-6xl" }, "💾"),
+                            React.createElement('h3', { className: "text-xl font-semibold text-gray-600 mb-2" }, "No Saved Numbers"),
+                            React.createElement('p', { className: "text-gray-500" }, "Generate some lucky numbers and save them to see them here!")
+                        ) :
+                        React.createElement('div', { className: "space-y-4" },
+                            ...savedNumbers.map((saved) => (
+                                React.createElement('div', { key: saved.id, className: "bg-white rounded-lg shadow-lg p-4 border-l-4 border-green-500" },
+                                    React.createElement('div', { className: "flex justify-between items-center mb-3" },
+                                        React.createElement('h3', { className: "text-lg font-semibold text-gray-800" }, 
+                                            saved.type === 'powerball' ? 'Powerball' : 'Mega Millions'
+                                        ),
+                                        React.createElement('span', { className: "text-sm text-gray-500" }, `Saved: ${saved.dateSaved}`)
+                                    ),
+                                    React.createElement('div', { className: "flex justify-center items-center gap-2 mb-3" },
+                                        ...saved.main.map((num, idx) => 
+                                            React.createElement('div', {
+                                                key: idx,
+                                                className: "w-8 h-8 bg-gray-600 text-white rounded-full flex items-center justify-center text-sm font-bold"
+                                            }, num.toString().padStart(2, '0'))
+                                        ),
+                                        React.createElement('span', { className: "text-lg font-bold text-gray-400 mx-1" }, "+"),
+                                        React.createElement('div', {
+                                            className: `w-8 h-8 text-white rounded-full flex items-center justify-center text-sm font-bold ${
+                                                saved.type === 'powerball' ? 'bg-red-500' : 'bg-yellow-500'
+                                            }`
+                                        }, saved.special.toString().padStart(2, '0'))
+                                    ),
+                                    React.createElement('button', {
+                                        onClick: () => setSavedNumbers(prev => prev.filter(item => item.id !== saved.id)),
+                                        className: "text-red-500 text-sm hover:text-red-700 transition duration-200"
+                                    }, "Remove")
+                                )
+                            ))
+                        )
+                ),
+
+                currentPage === 'settings' && React.createElement('div', { className: "p-4" },
+                    React.createElement('h2', { className: "text-2xl font-bold text-gray-800 mb-6" }, "Settings"),
+                    React.createElement('div', { className: "bg-white rounded-lg shadow-lg p-6 mb-6" },
+                        React.createElement('h3', { className: "text-lg font-semibold text-gray-800 mb-4" }, "App"),
+                        React.createElement('div', { className: "space-y-4" },
+                            React.createElement('div', { className: "flex items-center justify-between p-4 hover:bg-gray-50 rounded-lg cursor-pointer" },
+                                React.createElement('div', {},
+                                    React.createElement('h4', { className: "font-medium text-gray-800" }, "Rate App"),
+                                    React.createElement('p', { className: "text-sm text-gray-600" }, "Love this app? Leave us a review!")
+                                ),
+                                React.createElement('span', { className: "text-xl" }, "⭐")
+                            ),
+                            React.createElement('div', { className: "flex items-center justify-between p-4 hover:bg-gray-50 rounded-lg cursor-pointer" },
+                                React.createElement('div', {},
+                                    React.createElement('h4', { className: "font-medium text-gray-800" }, "Share App"),
+                                    React.createElement('p', { className: "text-sm text-gray-600" }, "Tell your friends about Jackpot Jack")
+                                ),
+                                React.createElement('span', { className: "text-xl" }, "📤")
+                            )
+                        )
+                    ),
+                    React.createElement('div', { className: "bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-6" },
+                        React.createElement('h3', { className: "text-lg font-semibold text-yellow-800 mb-3" }, "Responsible Gaming"),
+                        React.createElement('p', { className: "text-sm text-yellow-700" }, "Please remember to play responsibly. Lottery games are games of chance, and you should never spend more than you can afford to lose.")
+                    )
+                ),
+
+                currentPage === 'info' && React.createElement('div', { className: "p-4" },
+                    React.createElement('h2', { className: "text-2xl font-bold text-gray-800 mb-6" }, "Everything you need to know"),
+                    React.createElement('div', { className: "bg-white rounded-lg shadow-lg p-6 mb-6" },
+                        React.createElement('h3', { className: "text-xl font-bold text-gray-800 mb-4" }, "How We Generate Numbers"),
+                        React.createElement('div', { className: "space-y-4" },
+                            React.createElement('div', { className: "flex items-start space-x-3 p-4 bg-green-50 border border-green-200 rounded-lg" },
+                                React.createElement('span', { className: "text-green-500 text-xl" }, "✓"),
+                                React.createElement('div', {},
+                                    React.createElement('h4', { className: "font-semibold text-gray-800 mb-1" }, "Secure Random Generation"),
+                                    React.createElement('p', { className: "text-sm text-gray-600" }, "All numbers are generated using cryptographically secure random algorithms.")
+                                )
+                            )
+                        )
+                    ),
+                    React.createElement('div', { className: "bg-yellow-50 border border-yellow-300 rounded-lg p-6" },
+                        React.createElement('h3', { className: "text-lg font-bold text-yellow-800 mb-3" }, "Important Disclaimer"),
+                        React.createElement('p', { className: "text-sm text-yellow-700" }, "Jackpot Jack is a number generation tool for entertainment purposes. We do not guarantee winning numbers or lottery success. Please play responsibly.")
+                    )
+                ),
+
+                React.createElement(BottomNav)
+            );
+        };
+
+        ReactDOM.render(React.createElement(JackpotJackApp), document.getElementById('root'));
+    </script>
+</body>
+</html>
